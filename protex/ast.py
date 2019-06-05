@@ -16,7 +16,8 @@ class TextPos:
         if isinstance(num, int):
             return TextPos(self.col + num, self.line)
         elif isinstance(num, TextDeltaPos):
-            return TextPos(self.col if num.line == 0 else num.col, self.line + num.line)
+            return TextPos(self.col if num.line == 0 else num.col,
+                           self.line + num.line)
         else:
             raise ValueError('Cannot add TextPos with {}'.format(num))
 
@@ -118,11 +119,17 @@ class Token(AstNode):
 class PlainText(Token):
     def __init__(self, start, content):
         self.content = content
-        Token.__init__(self, start, len(content))
+        super().__init__(start, start + len(content))
 
     def render(self, at_pos):
         self._render(at_pos, at_pos + TextDeltaPos.from_src(self.content))
         return self.content
+
+
+class NewParagraph(Token):
+    def render(self, at_pos):
+        self._render(at_pos, at_pos + TextDeltaPos(0, 2))
+        return '\n\n'
 
 
 class BlankToken(Token):
@@ -133,18 +140,18 @@ class BlankToken(Token):
 
 class OpenBra(BlankToken):
     def __init__(self, pos):
-        Token.__init__(self, pos, pos + 1)
+        super().__init__(pos, pos + 1)
 
 
 class CloseBra(BlankToken):
     def __init__(self, pos):
-        Token.__init__(self, pos, pos + 1)
+        super().__init__(pos, pos + 1)
 
 
 class CommandTok(BlankToken):
     def __init__(self, start, content):
         self.name = content[1:]
-        Token.__init__(self, start, start + len(content))
+        super().__init__(start, start + len(content))
 
 
 sep_re = re.compile('{|}')
@@ -155,37 +162,96 @@ class CommandTemplate:
         self.source = definition
 
     def parse(self):
-        c = 0
-        mc = len(self.source)
+        i = 0
+        mi = len(self.source)
         buff = []
-        while c < mc:
-            if self.source[c] == '%':
+        while i < mi:
+            if self.source[i] == '%':
                 if buff:
                     yield ''.join(buff)
                     buff = []
-                if c == mc - 1 or self.source[c + 1] == '%':
+                if i == mi - 1 or self.source[i + 1] == '%':
                     yield '%'
-                    c += 1
+                    i += 1
                 else:
-                    c += 1
-                    while c < mc and self.source[mc].isdigit():
-                        buff.append(c)
-                    yield int(''.join(buff))
+                    i += 1
+                    while i < mi and self.source[i].isdigit():
+                        buff.append(self.source[i])
+                        i += 1
+                    if buff:
+                        yield int(''.join(buff))
+                    else:
+                        yield '%'
                     buff = []
             else:
-                buff.append(c)
-                c += 1
+                buff.append(i)
+                i += 1
         if buff:
             yield ''.join(buff)
 
-    def render(self, args):
+    def process(self, command, args):
         res = []
         for tok in self.parse():
             if isinstance(tok, int):
-                res.append(args[tok])
+                if tok == 0:
+                    res.append(PlainText(command.name))
+                else:
+                    res.append(args[tok])
             else:
                 res.append(PlainText(tok))
         return res
+
+
+class Group(AstNode):
+    def __init__(self, start, end, elems):
+        self.elems = elems
+        super().__init__(start, end)
+
+    def render(self, at_pos):
+        res = []
+        new_pos = at_pos
+        for elem in self.elems:
+            eres = elem.render()
+            new_pos += TextDeltaPos.from_src(eres)
+            res.append(eres)
+        self._rendered(at_pos, new_pos)
+        return ''.join(res)
+
+    def src_to_res_pos(self, init_pos):
+        assert self._rendered
+        if not (init_pos >= self.src_start and init_pos < self.src_end):
+            raise TextPosOutOfRangeError()
+        for tok in self.toks:
+            try:
+                return tok.src_to_res_pos(init_pos)
+            except TextPosOutOfRangeError:
+                pass
+        return self._final_pos + (init_pos - self.start)
+
+    def res_to_src_pos(self, final_pos):
+        assert self._rendered
+        if not (final_pos >= self.res_start and final_pos < self.res_end):
+            raise TextPosOutOfRangeError()
+        for tok in self.toks:
+            try:
+                return tok.res_to_src_pos(final_pos)
+            except TextPosOutOfRangeError:
+                pass
+        return self.start_pos + (final_pos - self.res_start)
+
+    def dump_pos_map(self):
+        return (m for t in self.toks for m in t.dump_pos_map())
+
+
+class Root(Group):
+    def __init__(self, group):
+        if group:
+            start = group[0].src_start
+            stop = group[-1].src_stop
+        else:
+            start = TextPos(0, 1)
+            stop = TextPos(0, 1)
+        super().__init__(start, stop, group)
 
 
 class Command(AstNode):
@@ -194,10 +260,10 @@ class Command(AstNode):
         self.args = command_args
         self.template = CommandTemplate(start, end, template)
         self.toks = []
-        AstNode.__init__(self, start, end)
+        super().__init__(start, end)
 
     def render(self, at_pos):
-        self.toks = self.template.render(self.args)
+        self.toks = self.template.process(self.name, self.args)
         res = []
         new_pos = at_pos
         for tok in self.toks:

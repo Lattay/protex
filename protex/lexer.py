@@ -1,5 +1,7 @@
 import string
-from .ast import PlainText, CommandTok, CloseBra, OpenBra, TextPos
+from .ast import (
+    PlainText, CommandTok, CloseBra, OpenBra, TextPos, NewParagraph
+)
 
 
 class Lexer:
@@ -35,6 +37,7 @@ class Lexer:
 
                 if self.buffer:
                     yield PlainText(buff_init_pos, ''.join(self.buffer))
+                    self.buffer = []
 
                 if c == '%':
                     while c != '\n':
@@ -58,10 +61,25 @@ class Lexer:
                     yield OpenBra(self.pos)
                     c = self.read()
 
+            elif c == '\n':
+                newlines = 0
+                new_par_pos = self.pos()
+                while c == '\n':
+                    newlines += 1
+                    c = self.read()
+
+                if newlines > 1:
+                    if self.buffer:
+                        yield PlainText(buff_init_pos, ''.join(self.buffer))
+                        self.buffer = []
+                    yield NewParagraph(new_par_pos, self.pos)
+                else:
+                    self.buffer.append('\n')
             else:
                 if not self.buffer:
                     buff_init_pos = self.pos
                 self.buffer.append(c)
+                c = self.read()
 
         if self.buffer:
             yield PlainText(buff_init_pos, ''.join(self.buffer))
