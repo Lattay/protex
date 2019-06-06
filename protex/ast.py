@@ -71,6 +71,28 @@ class TextDeltaPos(TextPos):
             return 'l+{}C{}'.format(self.line, self.col)
 
 
+class PosMap:
+    pass
+
+
+class ContiguousPosMap(PosMap):
+    def __init__(self, src_start, src_end, final_start, final_end):
+        self.src_start = src_start
+        self.src_end = src_end
+        self.final_start = final_start
+        self.final_end = final_end
+
+
+class RootPosMap(PosMap):
+    def __init__(self, filename, maps):
+        self.filename = filename
+        self.src_start = 0
+        self.maps = self.sort(maps)
+
+    def sort(self, maps):
+        return sorted(maps, key=lambda it: it.src_start)
+
+
 class TextPosOutOfRangeError(ValueError):
     pass
 
@@ -113,7 +135,7 @@ class Token(AstNode):
 
     def dump_pos_map(self):
         assert self._rendered
-        return [(self.src_start, self.src_end, self.res_start, self.res_end)]
+        return [ContiguousPosMap(self.src_start, self.src_end, self.res_start, self.res_end)]
 
 
 class PlainText(Token):
@@ -152,54 +174,6 @@ class CommandTok(BlankToken):
     def __init__(self, start, content):
         self.name = content[1:]
         super().__init__(start, start + len(content))
-
-
-sep_re = re.compile('{|}')
-
-
-class CommandTemplate:
-    def __init__(self, definition):
-        self.source = definition
-
-    def parse(self):
-        i = 0
-        mi = len(self.source)
-        buff = []
-        while i < mi:
-            if self.source[i] == '%':
-                if buff:
-                    yield ''.join(buff)
-                    buff = []
-                if i == mi - 1 or self.source[i + 1] == '%':
-                    yield '%'
-                    i += 1
-                else:
-                    i += 1
-                    while i < mi and self.source[i].isdigit():
-                        buff.append(self.source[i])
-                        i += 1
-                    if buff:
-                        yield int(''.join(buff))
-                    else:
-                        yield '%'
-                    buff = []
-            else:
-                buff.append(i)
-                i += 1
-        if buff:
-            yield ''.join(buff)
-
-    def process(self, command, args):
-        res = []
-        for tok in self.parse():
-            if isinstance(tok, int):
-                if tok == 0:
-                    res.append(PlainText(command.name))
-                else:
-                    res.append(args[tok])
-            else:
-                res.append(PlainText(tok))
-        return res
 
 
 class Group(AstNode):
@@ -244,7 +218,8 @@ class Group(AstNode):
 
 
 class Root(Group):
-    def __init__(self, group):
+    def __init__(self, filename, group):
+        self.filename = filename
         if group:
             start = group[0].src_start
             stop = group[-1].src_stop
@@ -253,17 +228,39 @@ class Root(Group):
             stop = TextPos(0, 1)
         super().__init__(start, stop, group)
 
+    def dump_pos_map(self):
+        return RootPosMap(self.filename, super().dump_pos_map)
+
+
+sep_re = re.compile('{|}')
+
+
+class CommandTemplate:
+    def __init__(self, start, end, proto):
+        self.start = start
+        self.end = end
+        self.prototype = proto
+
+    def apply(self, args):
+        res = []
+        for tok in self.prototype.tokens():
+            if isinstance(tok, int):
+                res.append(args[tok])
+            else:
+                res.append(PlainText(tok))
+        return res
+
 
 class Command(AstNode):
-    def __init__(self, start, end, name, command_args, template):
-        self.name = name
+    def __init__(self, start, end, command_args, proto):
+        self.name = proto.name
         self.args = command_args
-        self.template = CommandTemplate(start, end, template)
+        self.template = CommandTemplate(start, end, proto)
         self.toks = []
         super().__init__(start, end)
 
     def render(self, at_pos):
-        self.toks = self.template.process(self.name, self.args)
+        self.toks = self.template.apply(self.args)
         res = []
         new_pos = at_pos
         for tok in self.toks:

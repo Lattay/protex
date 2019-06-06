@@ -1,6 +1,6 @@
 from .ast import (
     CommandTok, CloseBra, OpenBra, PlainText, Command, Group, NewParagraph,
-    Root
+    Root, BlankToken
 )
 
 
@@ -14,10 +14,13 @@ class UnpairedBracketError(ParserError):
 
 
 class Parser:
-    def __init__(self, tokens, commands):
+    def __init__(self, lexer, commands, filename='anonym', **opts):
         self._tok_back_stack = []
-        self._tokens = iter(tokens)
+        self.lexer = lexer
+        self._tokens = lexer.token()
         self.commands = commands
+        self.options = opts
+        self.filename = filename
 
     def next_tok(self):
         if self._tok_back_stack:
@@ -33,7 +36,7 @@ class Parser:
 
     def parse(self):
         root, _ = self._parse(0)
-        return Root(root)
+        return Root(self.filename, root)
 
     def _parse(self, deep):
         nodes = []
@@ -71,20 +74,39 @@ class Parser:
                     PlainText(next_arg.src_start + 1, next_arg.commands[1:])
                 )
 
+    def _parse_input(self, input_tok, deep):
+        next_node = self._parse_node(deep)
+        if (not isinstance(next_node, Group)
+           or not next_node.elems
+           or not isinstance(next_node.elems[0], PlainText)):
+            raise SyntaxError(
+                'Malformed input command at {}'.format(next_node.src_start)
+            )
+        blank = BlankToken(input_tok.src_start, next_node.src_end)
+        if self.options.get('expand_input', False):
+            filename = next_node.elems[0].content
+            content = Parser(self.lexer.open_newfile(filename),
+                             self.commands)._parse(0)
+            self.tok_push_back(Root(filename, content))
+        return blank
+
     def _parse_node(self, deep):
         tok = self.next_tok()
         if isinstance(tok, OpenBra):
-            group, close_bra = self._parse(deep+1)
+            group, close_bra = self._parse(deep + 1)
             return Group(tok.src_start, close_bra.src_end, group)
         elif isinstance(tok, CommandTok):
-            start_pos = tok.src_start
-            prototype = self.commands.get(tok.name)
-            args = self._parse_command(prototype, deep)
-            if args:
-                end_pos = args.src_end
+            if tok.name == 'input':
+                return self._parse_input(deep)
             else:
-                end_pos = tok.src_end
-            return Command(tok.name, start_pos, end_pos, args,
-                           prototype.template)
+                start_pos = tok.src_start
+                prototype = self.commands.get(tok.name)
+                args = self._parse_command(prototype, deep)
+                if args:
+                    end_pos = args.src_end
+                else:
+                    end_pos = tok.src_end
+                return Command(tok.name, start_pos, end_pos, args,
+                               prototype)
         else:
             return tok

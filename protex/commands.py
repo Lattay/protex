@@ -2,9 +2,70 @@ from os.path import dirname, join, exists, normpath, expanduser
 
 
 class CommandPrototype:
-    def __init__(self, expected_narg, template):
+    def __init__(self, name, expected_narg, template):
+        self.name = name
         self.expected_narg = expected_narg
         self.template = template
+
+    def tokens(self):
+        i = 0
+        mi = len(self.template)
+        buff = []
+        while i < mi:
+            if self.template[i] == '%':
+                if buff:
+                    yield ''.join(buff)
+                    buff = []
+                if i == mi - 1 or self.template[i + 1] == '%':
+                    yield '%'
+                    i += 1
+                else:
+                    i += 1
+                    while i < mi and self.template[i].isdigit():
+                        buff.append(self.template[i])
+                        i += 1
+                    if buff:
+                        i = int(''.join(buff))
+                        if i == 0:
+                            yield self.name
+                        elif i <= self.expected_narg:
+                            yield i - 1
+                        else:
+                            raise ValueError('Template {} is broken.'.format(self.name))
+                    else:
+                        yield '%'
+                    buff = []
+            else:
+                buff.append(i)
+                i += 1
+        if buff:
+            yield ''.join(buff)
+
+
+class PrintLastPrototype(CommandPrototype):
+    def __init__(self, name):
+        self.name = name
+        self.expected_narg = 100
+
+    def tokens(self):
+        yield -1
+
+
+class PrintName(CommandPrototype):
+    def __init__(self, name):
+        self.name = name
+        self.expected_narg = 0
+
+    def tokens(self):
+        yield self.name
+
+
+class DiscardPrototype(CommandPrototype):
+    def __init__(self, name):
+        self.name = name
+
+    def tokens(self):
+        yield from ()  # empty generator
 
 
 class CommandFileLoader:

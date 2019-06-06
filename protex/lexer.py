@@ -21,6 +21,10 @@ class Lexer:
             self.ident_chars = ident_chars
         self.special_chars = self.special_chars.union(special_chars)
 
+    def open_newfile(self, source_file):
+        return Lexer(source_file, ident_chars=self.ident_chars,
+                     special_chars=self.special_chars)
+
     def read(self):
         c = self.file.read(1)
         if c == '\n':
