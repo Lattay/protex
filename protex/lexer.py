@@ -6,10 +6,11 @@ from .ast import (
 
 class Lexer:
 
-    ident_chars = set(string.ascii_letters) + set(string.digits) + {
-        '-', '_', '+', '*'
-    }
+    ident_chars = set(string.ascii_letters).union(set(string.digits)).union({
+        '-', '+', '*'
+    })
     special_chars = {'\\', '{', '}', '%'}
+    special_command_chars = {'_', '\\', '%', '{', '}'}
 
     def __init__(self, source_file, ident_chars=None, special_chars=set()):
         self.source_file = source_file
@@ -18,8 +19,7 @@ class Lexer:
         self.pos = TextPos(0, 1)
         if ident_chars is not None:
             self.ident_chars = ident_chars
-        if special_chars is not None:
-            self.special_chars = special_chars
+        self.special_chars = self.special_chars.union(special_chars)
 
     def read(self):
         c = self.file.read(1)
@@ -46,9 +46,12 @@ class Lexer:
 
                 elif c == '\\':
                     init_pos = self.pos
-                    self.buffer = c
+                    self.buffer = [c]
                     c = self.read()
                     while c in self.ident_chars:
+                        self.buffer.append(c)
+                        c = self.read()
+                    if len(self.buffer) == 1 and c in self.special_command_chars:
                         self.buffer.append(c)
                         c = self.read()
                     yield CommandTok(init_pos, ''.join(self.buffer))
@@ -63,7 +66,7 @@ class Lexer:
 
             elif c == '\n':
                 newlines = 0
-                new_par_pos = self.pos()
+                new_par_pos = self.pos
                 while c == '\n':
                     newlines += 1
                     c = self.read()
