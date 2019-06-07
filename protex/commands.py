@@ -1,4 +1,5 @@
 from os.path import dirname, join, exists, normpath, expanduser
+import json
 
 
 class CommandPrototype:
@@ -31,7 +32,8 @@ class CommandPrototype:
                         elif i <= self.expected_narg:
                             yield i - 1
                         else:
-                            raise ValueError('Template {} is broken.'.format(self.name))
+                            raise ValueError('Template {} is broken.'
+                                             .format(self.name))
                     else:
                         yield '%'
                     buff = []
@@ -51,7 +53,7 @@ class PrintLastPrototype(CommandPrototype):
         yield -1
 
 
-class PrintName(CommandPrototype):
+class PrintNamePrototype(CommandPrototype):
     def __init__(self, name):
         self.name = name
         self.expected_narg = 0
@@ -68,19 +70,57 @@ class DiscardPrototype(CommandPrototype):
         yield from ()  # empty generator
 
 
-class CommandFileLoader:
+class IllformedCommandJSON(ValueError):
+    pass
+
+
+class CommandLoader:
     def __init__(self, command_dict, default_proto=None):
-        pass
+        self.dict = command_dict
+        self.default = default_proto
 
     @classmethod
-    def from_file(self, filename, default_proto=None):
-        pass
+    def from_file(cls, filename, default_proto=None):
+        commands = {}
+        with open(filename) as f:
+            data = json.load(f)
+            if not isinstance(data, dict):
+                raise IllformedCommandJSON()
+
+            if 'print_last' in data and isinstance(data['print_last'], (tuple, list)):
+                for cmd in data['print_last']:
+                    if not isinstance(cmd, str):
+                        raise IllformedCommandJSON()
+                    commands[cmd] = PrintLastPrototype(cmd)
+
+            if 'print_name' in data and isinstance(data['print_name'], (tuple, list)):
+                for cmd in data['print_name']:
+                    if not isinstance(cmd, str):
+                        raise IllformedCommandJSON()
+                    commands[cmd] = PrintNamePrototype(cmd)
+
+            if 'discard' in data and isinstance(data['discard'], (tuple, list)):
+                for cmd in data['discard']:
+                    if not isinstance(cmd, str):
+                        raise IllformedCommandJSON()
+                    commands[cmd] = DiscardPrototype(cmd)
+
+            if 'other' in data and isinstance(data['other'], dict):
+                for cmd in data['other']:
+                    if not (isinstance(cmd, str)
+                            and isinstance(data[cmd], (list, tuple))
+                            and len(data[cmd]) == 2
+                            and isinstance(data[cmd][0], int)
+                            and isinstance(data[cmd][1], str)):
+                        raise IllformedCommandJSON()
+                    commands[cmd] = CommandPrototype(cmd, *data[cmd])
+        return cls(cmd, default_proto)
 
     def update(self, other):
-        pass
+        self.dict.update(other.dict)
 
     def get(self, name):
-        pass
+        return self.dict.get(name, self.default)
 
 
 class NoCommandFileFoundError(FileNotFoundError):
@@ -111,17 +151,17 @@ def command_file_seek(start_dir, file_name='commands.json', hidden_name=None):
     if not files:
         raise NoCommandFileFoundError("No command file have been found.")
 
-    return files
+    return reversed(files)
 
 
 def load_all_files(name='commands.json'):
-    files = reversed(command_file_seek('.', file_name=name))
+    files = command_file_seek('.', file_name=name)
 
-    default_proto = CommandPrototype(100, "")
+    default_proto = DiscardPrototype()
 
-    commands = CommandFileLoader({}, default_proto)
+    commands = CommandLoader({}, default_proto)
     for f in files:
-        new = CommandFileLoader.from_file(f)
+        new = CommandLoader.from_file(f)
         commands.update(new)
 
     return commands
