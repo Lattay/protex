@@ -41,21 +41,39 @@ class TextPos:
         return self - other
 
     def __gt__(self, other):
+        if other == 0:
+            return True
+        assert isinstance(other, TextPos)
         return self.line > other.line or (self.line == other.line
                                           and self.col > other.col)
 
     def __ge__(self, other):
+        if other == 0:
+            return True
+        assert isinstance(other, TextPos)
         return self.line > other.line or (self.line == other.line
                                           and self.col >= other.col)
 
     def __lt__(self, other):
+        if other == 0:
+            return False
+        assert isinstance(other, TextPos)
         return not (self >= other)
 
     def __le__(self, other):
+        if other == 0:
+            return False
+        assert isinstance(other, TextPos)
         return not (self > other)
 
     def __eq__(self, other):
+        if other == 0:
+            return False
+        assert isinstance(other, TextPos)
         return self.line == other.line and self.col == other.col
+
+
+text_origin = TextPos(0, 1)
 
 
 class TextDeltaPos(TextPos):
@@ -90,6 +108,9 @@ class RootPosMap(PosMap):
     def __init__(self, filename, maps):
         self.filename = filename
         self.src_start = 0
+        if not hasattr(maps, '__iter__'):
+            print(maps)
+            exit()
         self.maps = self.sort(maps)
 
     def sort(self, maps):
@@ -124,7 +145,7 @@ class RootPosMap(PosMap):
                 d[fname] = []
             else:
                 d[fname].append({
-                    'src': (obj[0].as_dict(), obj[1].as_dict()),
-                    'dest': (obj[2].as_dict(), obj[3].as_dict())
+                    'src': (obj.src_start.as_dict(), obj.src_end.as_dict()),
+                    'dest': (obj.final_start.as_dict(), obj.final_end.as_dict())
                 })
         return d

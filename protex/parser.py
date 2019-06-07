@@ -1,3 +1,4 @@
+from .text_pos import text_origin
 from .ast import (
     CommandTok, CloseBra, OpenBra, PlainText, Command, Group, NewParagraph,
     Root, BlankToken
@@ -40,14 +41,17 @@ class Parser:
 
     def _parse(self, deep):
         nodes = []
-        node = self.parse_node()
+        node = self._parse_node(deep)
         while node is not None and not isinstance(node, CloseBra):
             nodes.append(node)
             node = self._parse_node(deep)
 
-        if (deep == 0 and node is not None) or (deep > 0 and node is None):
-            raise UnpairedBracketError()
+        if deep == 0 and node is not None:
+            raise UnpairedBracketError(node.src_end)
 
+        if deep > 0 and node is None:
+            print(nodes)
+            raise UnpairedBracketError(text_origin)
         return nodes, node
 
     def _parse_command(self, prototype, deep):
@@ -67,26 +71,27 @@ class Parser:
             self.tok_push_back(next_arg)
 
         elif isinstance(next_arg, PlainText):
-            if not next_arg.content[0].isblank():
-                args.append(PlainText(next_arg.start_pos, next_arg.content[0]))
+            if not next_arg.content[0].isspace():
+                args.append(PlainText(next_arg.src_start, next_arg.content[0]))
             if len(next_arg.content) > 1:
                 self.tok_push_back(
-                    PlainText(next_arg.src_start + 1, next_arg.commands[1:])
+                    PlainText(next_arg.src_start + 1, next_arg.content[1:])
                 )
+        return args
 
     def _parse_input(self, input_tok, deep):
         next_node = self._parse_node(deep)
-        if (not isinstance(next_node, Group)
-           or not next_node.elems
-           or not isinstance(next_node.elems[0], PlainText)):
+        if not (isinstance(next_node, Group)
+                and next_node.elems
+                and isinstance(next_node.elems[0], PlainText)):
             raise SyntaxError(
-                'Malformed input command at {}'.format(next_node.src_start)
+                'Illformed input command at {}'.format(next_node.src_start)
             )
         blank = BlankToken(input_tok.src_start, next_node.src_end)
         if self.options.get('expand_input', False):
             filename = next_node.elems[0].content
-            content = Parser(self.lexer.open_newfile(filename),
-                             self.commands)._parse(0)
+            content, _ = Parser(self.lexer.open_newfile(filename),
+                                self.commands)._parse(0)
             self.tok_push_back(Root(filename, content))
         return blank
 
@@ -97,16 +102,15 @@ class Parser:
             return Group(tok.src_start, close_bra.src_end, group)
         elif isinstance(tok, CommandTok):
             if tok.name == 'input':
-                return self._parse_input(deep)
+                return self._parse_input(tok, deep)
             else:
                 start_pos = tok.src_start
                 prototype = self.commands.get(tok.name)
                 args = self._parse_command(prototype, deep)
                 if args:
-                    end_pos = args.src_end
+                    end_pos = args[-1].src_end
                 else:
                     end_pos = tok.src_end
-                return Command(tok.name, start_pos, end_pos, args,
-                               prototype)
+                return Command(start_pos, end_pos, args, prototype)
         else:
             return tok

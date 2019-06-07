@@ -63,8 +63,7 @@ class ArgParser(object):
     def parse_clean(self, parser):
         '''
         '''
-        parser.add_argument('file', metavar='SOURCE', nargs=1,
-                            help='source file')
+        parser.add_argument('file', metavar='SOURCE', help='source file')
         parser.add_argument('-o', '--output', nargs=1, default=None,
                             help='output file. stdout is used if omited.')
         parser.add_argument('-i', '--expand-input', action='store_true',
@@ -78,6 +77,8 @@ class ArgParser(object):
         parser.add_argument('-u', '--ugly-json', action='store_true',
                             help=('disable pretty printing options for JSON dump'
                                   ' producing ugly (but compact) JSON'))
+        parser.add_argument('-d', '--debug', action='store_true',
+                            help='debugging tools')
 
     def list_commands(self, args):
         lexers = (Lexer(filename) for filename in args.files)
@@ -108,6 +109,12 @@ class ArgParser(object):
             output_type = 'map'
         else:
             output_type = 'clean'
+
+        if args.debug:
+            print(list(Lexer(args.file).token()))
+            root = parse_with_default(args.file, expand_input)
+            print(root.elems)
+            exit(0)
 
         root = parse_with_default(args.file, expand_input)
 

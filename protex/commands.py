@@ -1,4 +1,4 @@
-from os.path import dirname, join, exists, normpath, expanduser
+from os.path import dirname, join, exists, normpath, expanduser, abspath
 import json
 
 
@@ -38,7 +38,7 @@ class CommandPrototype:
                         yield '%'
                     buff = []
             else:
-                buff.append(i)
+                buff.append(self.template[i])
                 i += 1
         if buff:
             yield ''.join(buff)
@@ -65,6 +65,7 @@ class PrintNamePrototype(CommandPrototype):
 class DiscardPrototype(CommandPrototype):
     def __init__(self, name):
         self.name = name
+        self.expected_narg = 1000
 
     def tokens(self):
         yield from ()  # empty generator
@@ -108,19 +109,19 @@ class CommandLoader:
             if 'other' in data and isinstance(data['other'], dict):
                 for cmd in data['other']:
                     if not (isinstance(cmd, str)
-                            and isinstance(data[cmd], (list, tuple))
-                            and len(data[cmd]) == 2
-                            and isinstance(data[cmd][0], int)
-                            and isinstance(data[cmd][1], str)):
+                            and isinstance(data['other'][cmd], (list, tuple))
+                            and len(data['other'][cmd]) == 2
+                            and isinstance(data['other'][cmd][0], int)
+                            and isinstance(data['other'][cmd][1], str)):
                         raise IllformedCommandJSON()
-                    commands[cmd] = CommandPrototype(cmd, *data[cmd])
-        return cls(cmd, default_proto)
+                    commands[cmd] = CommandPrototype(cmd, *data['other'][cmd])
+        return cls(commands, default_proto)
 
     def update(self, other):
         self.dict.update(other.dict)
 
     def get(self, name):
-        return self.dict.get(name, self.default)
+        return self.dict.get(name, self.default(name))
 
 
 class NoCommandFileFoundError(FileNotFoundError):
@@ -133,10 +134,10 @@ def command_file_seek(start_dir, file_name='commands.json', hidden_name=None):
 
     files = []
 
-    current_dir = normpath(start_dir)
+    current_dir = abspath(normpath(start_dir))
     while current_dir != '/':
         hf = join(start_dir, hidden_name)
-        if exists():
+        if exists(hf):
             files.append(hf)
         current_dir = dirname(current_dir)
 
@@ -157,9 +158,7 @@ def command_file_seek(start_dir, file_name='commands.json', hidden_name=None):
 def load_all_files(name='commands.json'):
     files = command_file_seek('.', file_name=name)
 
-    default_proto = DiscardPrototype()
-
-    commands = CommandLoader({}, default_proto)
+    commands = CommandLoader({}, DiscardPrototype)
     for f in files:
         new = CommandLoader.from_file(f)
         commands.update(new)

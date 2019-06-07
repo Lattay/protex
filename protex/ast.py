@@ -1,5 +1,5 @@
 import re
-from .text_pos import TextPos, ContiguousPosMap, TextDeltaPos, RootPosMap
+from .text_pos import text_origin, ContiguousPosMap, TextDeltaPos, RootPosMap
 
 
 class TextPosOutOfRangeError(ValueError):
@@ -27,6 +27,9 @@ class AstNode:
 
     def dump_pos_map(self):
         raise NotImplementedError()
+
+    def __repr__(self):
+        return '<{}>'.format(self.__class__.__name__)
 
 
 class Token(AstNode):
@@ -56,6 +59,9 @@ class PlainText(Token):
         self._render(at_pos, at_pos + TextDeltaPos.from_src(self.content))
         return self.content
 
+    def __repr__(self):
+        return '<PlainText:{}>'.format(self.content[:5])
+
 
 class NewParagraph(Token):
     def render(self, at_pos):
@@ -84,6 +90,9 @@ class CommandTok(BlankToken):
         self.name = content[1:]
         super().__init__(start, start + len(content))
 
+    def __repr__(self):
+        return '<CommandTok: {}>'.format(self.name)
+
 
 class Group(AstNode):
     def __init__(self, start, end, elems):
@@ -94,10 +103,10 @@ class Group(AstNode):
         res = []
         new_pos = at_pos
         for elem in self.elems:
-            eres = elem.render()
+            eres = elem.render(new_pos)
             new_pos += TextDeltaPos.from_src(eres)
             res.append(eres)
-        self._rendered(at_pos, new_pos)
+        self._render(at_pos, new_pos)
         return ''.join(res)
 
     def src_to_res_pos(self, init_pos):
@@ -123,7 +132,15 @@ class Group(AstNode):
         return self.start_pos + (final_pos - self.res_start)
 
     def dump_pos_map(self):
-        return (m for t in self.toks for m in t.dump_pos_map())
+        for e in self.elems:
+            pmap = e.dump_pos_map()
+            if isinstance(pmap, RootPosMap):
+                yield pmap
+            else:
+                yield from pmap
+
+    def __repr__(self):
+        return '<Group:{}>'.format(self.elems)
 
 
 class Root(Group):
@@ -131,14 +148,20 @@ class Root(Group):
         self.filename = filename
         if group:
             start = group[0].src_start
-            stop = group[-1].src_stop
+            stop = group[-1].src_end
         else:
-            start = TextPos(0, 1)
-            stop = TextPos(0, 1)
+            start = text_origin
+            stop = text_origin
         super().__init__(start, stop, group)
 
     def dump_pos_map(self):
-        return RootPosMap(self.filename, super().dump_pos_map)
+        return RootPosMap(self.filename, super().dump_pos_map())
+
+    def render(self, at_pos=text_origin):
+        return super().render(at_pos)
+
+    def __repr__(self):
+        return '<Root:{}>'.format(self.elems)
 
 
 sep_re = re.compile('{|}')
@@ -150,13 +173,13 @@ class CommandTemplate:
         self.end = end
         self.prototype = proto
 
-    def apply(self, args):
+    def apply(self, src_start, args):
         res = []
         for tok in self.prototype.tokens():
             if isinstance(tok, int):
                 res.append(args[tok])
             else:
-                res.append(PlainText(tok))
+                res.append(PlainText(src_start, tok))
         return res
 
 
@@ -169,14 +192,14 @@ class Command(AstNode):
         super().__init__(start, end)
 
     def render(self, at_pos):
-        self.toks = self.template.apply(self.args)
+        self.toks = self.template.apply(self.src_start, self.args)
         res = []
         new_pos = at_pos
         for tok in self.toks:
-            tres = tok.render()
+            tres = tok.render(new_pos)
             new_pos += TextDeltaPos.from_src(tres)
             res.append(tres)
-        self._rendered(at_pos, new_pos)
+        self._render(at_pos, new_pos)
         return ''.join(res)
 
     def src_to_res_pos(self, init_pos):
@@ -201,3 +224,6 @@ class Command(AstNode):
 
     def dump_pos_map(self):
         return (m for t in self.toks for m in t.dump_pos_map())
+
+    def __repr__(self):
+        return '<Command:{}-{}>'.format(self.name, self.args)

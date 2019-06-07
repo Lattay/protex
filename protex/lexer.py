@@ -1,6 +1,8 @@
 import string
+from os.path import normpath, join, dirname
+from .text_pos import text_origin, TextPos
 from .ast import (
-    PlainText, CommandTok, CloseBra, OpenBra, TextPos, NewParagraph
+    PlainText, CommandTok, CloseBra, OpenBra, NewParagraph
 )
 
 
@@ -16,13 +18,14 @@ class Lexer:
         self.source_file = source_file
         self.file = open(self.source_file)
         self.buffer = []
-        self.pos = TextPos(0, 1)
+        self.pos = text_origin
         if ident_chars is not None:
             self.ident_chars = ident_chars
         self.special_chars = self.special_chars.union(special_chars)
 
     def open_newfile(self, source_file):
-        return Lexer(source_file, ident_chars=self.ident_chars,
+        path = normpath(join(dirname(self.source_file), source_file))
+        return Lexer(path, ident_chars=self.ident_chars,
                      special_chars=self.special_chars)
 
     def read(self):
@@ -59,6 +62,7 @@ class Lexer:
                         self.buffer.append(c)
                         c = self.read()
                     yield CommandTok(init_pos, ''.join(self.buffer))
+                    self.buffer = []
 
                 elif c == '}':
                     yield CloseBra(self.pos)
