@@ -1,7 +1,10 @@
 import argparse
+import sys
+import json
 
 from .lexer import Lexer
 from .ast import CommandTok
+from . import parse_with_default
 
 
 class ArgParser(object):
@@ -10,6 +13,11 @@ class ArgParser(object):
         'list_commands': {
             'help': 'list all command names found in a set of files',
             'aliases': ['list'],
+        },
+        'clean': {
+            'help': ('clean a file from its latex and create a mapping'
+                     ' of position before and after.'),
+            'aliases': ['detex']
         },
     }
 
@@ -52,6 +60,25 @@ class ArgParser(object):
         parser.add_argument('files', metavar='SOURCE', nargs='+',
                             help='source files')
 
+    def parse_clean(self, parser):
+        '''
+        '''
+        parser.add_argument('file', metavar='SOURCE', nargs=1,
+                            help='source file')
+        parser.add_argument('-o', '--output', nargs=1, default=None,
+                            help='output file. stdout is used if omited.')
+        parser.add_argument('-i', '--expand-input', action='store_true',
+                            help='enable expanding input commands')
+        parser.add_argument('-j', '--json', action='store_true',
+                            help='output the result as a JSON')
+        parser.add_argument('-c', '--clean', action='store_true',
+                            help='output the cleaned text')
+        parser.add_argument('-m', '--map', action='store_true',
+                            help='output the position mapping (text format)')
+        parser.add_argument('-u', '--ugly-json', action='store_true',
+                            help=('disable pretty printing options for JSON dump'
+                                  ' producing ugly (but compact) JSON'))
+
     def list_commands(self, args):
         lexers = (Lexer(filename) for filename in args.files)
         res = sorted(set(
@@ -60,6 +87,49 @@ class ArgParser(object):
         ))
         for cmd in res:
             print(cmd)
+
+    def clean(self, args):
+        if args.output:
+            try:
+                f = open(args.output, 'w')
+            except FileNotFoundError:
+                print('{} does not exists.'.format(args.output), file=sys.stderr)
+                exit(1)
+        else:
+            f = sys.stdout
+
+        if args.expand_input:
+            expand_input = True
+        if args.json:
+            output_type = 'json'
+        elif args.clean:
+            output_type = 'clean'
+        elif args.map:
+            output_type = 'map'
+        else:
+            output_type = 'clean'
+
+        root = parse_with_default(args.file, expand_input)
+
+        if output_type == 'json':
+            d = {
+                'text': root.render(),
+                'map': root.dump_pos_map().as_dict()
+            }
+            if args.ugly_json:
+                indent = None
+                sep = (',', ':')
+            else:
+                indent = 2
+                sep = (', ', ': ')
+            json.dump(d, f, indent=indent, separators=sep)
+
+        elif output_type == 'clean':
+            f.write(root.render())
+
+        else:
+            root.render()
+            f.write(root.dump_pos_map().as_text())
 
 
 ArgParser()
