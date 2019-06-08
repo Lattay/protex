@@ -16,7 +16,7 @@ class CommandPrototype:
             if self.template[i] == '%':
                 if buff:
                     yield ''.join(buff)
-                    buff = []
+                    buff.clear()
                 if i == mi - 1 or self.template[i + 1] == '%':
                     yield '%'
                     i += 1
@@ -26,17 +26,17 @@ class CommandPrototype:
                         buff.append(self.template[i])
                         i += 1
                     if buff:
-                        i = int(''.join(buff))
-                        if i == 0:
+                        k = int(''.join(buff))
+                        if k == 0:
                             yield self.name
-                        elif i <= self.expected_narg:
-                            yield i - 1
+                        elif k <= self.expected_narg:
+                            yield k - 1
                         else:
                             raise ValueError('Template {} is broken.'
                                              .format(self.name))
                     else:
                         yield '%'
-                    buff = []
+                    buff.clear()
             else:
                 buff.append(self.template[i])
                 i += 1
@@ -44,13 +44,13 @@ class CommandPrototype:
             yield ''.join(buff)
 
 
-class PrintLastPrototype(CommandPrototype):
+class PrintOnePrototype(CommandPrototype):
     def __init__(self, name):
         self.name = name
-        self.expected_narg = 100
+        self.expected_narg = 1
 
     def tokens(self):
-        yield -1
+        yield 0
 
 
 class PrintNamePrototype(CommandPrototype):
@@ -88,23 +88,18 @@ class CommandLoader:
             if not isinstance(data, dict):
                 raise IllformedCommandJSON()
 
-            if 'print_last' in data and isinstance(data['print_last'], (tuple, list)):
-                for cmd in data['print_last']:
-                    if not isinstance(cmd, str):
-                        raise IllformedCommandJSON()
-                    commands[cmd] = PrintLastPrototype(cmd)
+            specials = {
+                'print_one': PrintOnePrototype,
+                'print_name': PrintNamePrototype,
+                'discard': DiscardPrototype
+            }
 
-            if 'print_name' in data and isinstance(data['print_name'], (tuple, list)):
-                for cmd in data['print_name']:
-                    if not isinstance(cmd, str):
-                        raise IllformedCommandJSON()
-                    commands[cmd] = PrintNamePrototype(cmd)
-
-            if 'discard' in data and isinstance(data['discard'], (tuple, list)):
-                for cmd in data['discard']:
-                    if not isinstance(cmd, str):
-                        raise IllformedCommandJSON()
-                    commands[cmd] = DiscardPrototype(cmd)
+            for key, proto in specials.items():
+                if key in data and isinstance(data[key], (tuple, list)):
+                    for cmd in data[key]:
+                        if not isinstance(cmd, str):
+                            raise IllformedCommandJSON()
+                        commands[cmd] = proto(cmd)
 
             if 'other' in data and isinstance(data['other'], dict):
                 for cmd in data['other']:

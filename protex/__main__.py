@@ -99,8 +99,8 @@ class ArgParser(object):
         else:
             f = sys.stdout
 
-        if args.expand_input:
-            expand_input = True
+        expand_input = args.expand_input
+
         if args.json:
             output_type = 'json'
         elif args.clean:

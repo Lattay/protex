@@ -85,6 +85,16 @@ class CloseBra(BlankToken):
         super().__init__(pos, pos + 1)
 
 
+class OpenSqBra(PlainText):
+    def __init__(self, pos):
+        super().__init__(pos, '[')
+
+
+class CloseSqBra(PlainText):
+    def __init__(self, pos):
+        super().__init__(pos, ']')
+
+
 class CommandTok(BlankToken):
     def __init__(self, start, content):
         self.name = content[1:]

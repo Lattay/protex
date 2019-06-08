@@ -2,7 +2,8 @@ import string
 from os.path import normpath, join, dirname
 from .text_pos import text_origin, TextPos
 from .ast import (
-    PlainText, CommandTok, CloseBra, OpenBra, NewParagraph
+    PlainText, CommandTok, CloseBra, OpenBra, NewParagraph,
+    CloseSqBra, OpenSqBra
 )
 
 
@@ -11,7 +12,7 @@ class Lexer:
     ident_chars = set(string.ascii_letters).union(set(string.digits)).union({
         '-', '+', '*'
     })
-    special_chars = {'\\', '{', '}', '%'}
+    special_chars = {'\\', '{', '}', '%', '[', ']'}
     special_command_chars = {'_', '\\', '%', '{', '}'}
 
     def __init__(self, source_file, ident_chars=None, special_chars=set()):
@@ -70,6 +71,14 @@ class Lexer:
 
                 elif c == '{':
                     yield OpenBra(self.pos)
+                    c = self.read()
+
+                elif c == ']':
+                    yield CloseSqBra(self.pos)
+                    c = self.read()
+
+                elif c == '[':
+                    yield OpenSqBra(self.pos)
                     c = self.read()
 
             elif c == '\n':
