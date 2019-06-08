@@ -1,4 +1,5 @@
 import string
+from io import StringIO
 from os.path import normpath, join, dirname
 from .text_pos import text_origin, TextPos
 from .ast import (
@@ -15,14 +16,26 @@ class Lexer:
     special_chars = {'\\', '{', '}', '%', '[', ']'}
     special_command_chars = {'_', '\\', '%', '{', '}'}
 
-    def __init__(self, source_file, ident_chars=None, special_chars=set()):
-        self.source_file = source_file
-        self.file = open(self.source_file)
+    def __init__(self, source_name, stream, ident_chars=None, special_chars=set()):
+        self.source_file = source_name
+        self.file = stream
         self.buffer = []
         self.pos = text_origin
         if ident_chars is not None:
             self.ident_chars = ident_chars
         self.special_chars = self.special_chars.union(special_chars)
+
+    @classmethod
+    def from_file(cls, filename):
+        file = open(filename)
+        return cls(filename, file)
+
+    def from_source(cls, source, filename=None):
+        if filename is None:
+            _filename = 'anonym'
+        else:
+            _filename = filename
+        return cls(StringIO(source), _filename)
 
     def open_newfile(self, source_file):
         path = normpath(join(dirname(self.source_file), source_file))

@@ -81,7 +81,7 @@ class ArgParser(object):
                             help='debugging tools')
 
     def list_commands(self, args):
-        lexers = (Lexer(filename) for filename in args.files)
+        lexers = (Lexer.from_file(filename) for filename in args.files)
         res = sorted(set(
             tok.name for lx in lexers for tok in lx.token()
             if isinstance(tok, CommandTok)
@@ -111,7 +111,7 @@ class ArgParser(object):
             output_type = 'clean'
 
         if args.debug:
-            print(list(Lexer(args.file).token()))
+            print(list(Lexer.from_file(args.file).token()))
             root = parse_with_default(args.file, expand_input)
             print(root.elems)
             exit(0)
