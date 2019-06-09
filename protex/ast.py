@@ -2,10 +2,6 @@ import re
 from .text_pos import text_origin, ContiguousPosMap, TextDeltaPos, RootPosMap
 
 
-class TextPosOutOfRangeError(ValueError):
-    pass
-
-
 class AstNode:
     def __init__(self, start, end):
         self.src_start = start
@@ -19,12 +15,6 @@ class AstNode:
         self.res_start = from_pos
         self.res_end = to_pos
 
-    def src_to_res_pos(self, p):
-        raise NotImplementedError()
-
-    def res_to_src_pos(self, p):
-        raise NotImplementedError()
-
     def dump_pos_map(self):
         raise NotImplementedError()
 
@@ -33,18 +23,6 @@ class AstNode:
 
 
 class Token(AstNode):
-    def src_to_res_pos(self, init_pos):
-        assert self._rendered
-        if not (init_pos >= self.src_start and init_pos < self.src_end):
-            raise TextPosOutOfRangeError()
-        return self._final_pos + (init_pos - self.start)
-
-    def res_to_src_pos(self, final_pos):
-        assert self._rendered
-        if not (final_pos >= self.res_start and final_pos < self.res_end):
-            raise TextPosOutOfRangeError()
-        return self.start_pos + (final_pos - self.res_start)
-
     def dump_pos_map(self):
         assert self._rendered
         return [ContiguousPosMap(self.src_start, self.src_end, self.res_start, self.res_end)]
@@ -119,28 +97,6 @@ class Group(AstNode):
         self._render(at_pos, new_pos)
         return ''.join(res)
 
-    def src_to_res_pos(self, init_pos):
-        assert self._rendered
-        if not (init_pos >= self.src_start and init_pos < self.src_end):
-            raise TextPosOutOfRangeError()
-        for tok in self.toks:
-            try:
-                return tok.src_to_res_pos(init_pos)
-            except TextPosOutOfRangeError:
-                pass
-        return self._final_pos + (init_pos - self.start)
-
-    def res_to_src_pos(self, final_pos):
-        assert self._rendered
-        if not (final_pos >= self.res_start and final_pos < self.res_end):
-            raise TextPosOutOfRangeError()
-        for tok in self.toks:
-            try:
-                return tok.res_to_src_pos(final_pos)
-            except TextPosOutOfRangeError:
-                pass
-        return self.start_pos + (final_pos - self.res_start)
-
     def dump_pos_map(self):
         for e in self.elems:
             pmap = e.dump_pos_map()
@@ -211,26 +167,6 @@ class Command(AstNode):
             res.append(tres)
         self._render(at_pos, new_pos)
         return ''.join(res)
-
-    def src_to_res_pos(self, init_pos):
-        assert self._rendered
-        if not (init_pos >= self.src_start and init_pos < self.src_end):
-            raise TextPosOutOfRangeError()
-        for tok in self.toks:
-            try:
-                return tok.src_to_res_pos(init_pos)
-            except TextPosOutOfRangeError:
-                pass
-
-    def res_to_src_pos(self, final_pos):
-        assert self._rendered
-        if not (final_pos >= self.res_start and final_pos < self.res_end):
-            raise TextPosOutOfRangeError()
-        for tok in self.toks:
-            try:
-                return tok.res_to_src_pos(final_pos)
-            except TextPosOutOfRangeError:
-                pass
 
     def dump_pos_map(self):
         return (m for t in self.toks for m in t.dump_pos_map())

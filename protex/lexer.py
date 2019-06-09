@@ -26,21 +26,22 @@ class Lexer:
         self.special_chars = self.special_chars.union(special_chars)
 
     @classmethod
-    def from_file(cls, filename):
+    def from_file(cls, filename, ident_chars=None, special_chars=set()):
         file = open(filename)
-        return cls(filename, file)
+        return cls(filename, file, ident_chars=ident_chars, special_chars=special_chars)
 
-    def from_source(cls, source, filename=None):
+    def from_source(cls, source, filename=None, ident_chars=None, special_chars=set()):
         if filename is None:
             _filename = 'anonym'
         else:
             _filename = filename
-        return cls(StringIO(source), _filename)
+        return cls(StringIO(source), _filename,
+                   ident_chars=ident_chars, special_chars=special_chars)
 
     def open_newfile(self, source_file):
         path = normpath(join(dirname(self.source_file), source_file))
-        return Lexer(path, ident_chars=self.ident_chars,
-                     special_chars=self.special_chars)
+        return Lexer.from_file(path, ident_chars=self.ident_chars,
+                               special_chars=self.special_chars)
 
     def read(self):
         c = self.file.read(1)

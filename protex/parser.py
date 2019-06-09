@@ -119,7 +119,6 @@ class Parser:
                 start_pos = tok.src_start
                 prototype = self.commands.get(tok.name)
                 args = self._parse_command(prototype, deep)
-                print(tok.name, ':', args)
                 if args:
                     end_pos = args[-1].src_end
                 else:
