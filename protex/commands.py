@@ -140,7 +140,7 @@ def command_file_seek(start_dir, file_name='commands.json', hidden_name=None):
     if exists(user):
         files.append(user)
 
-    default = join(dirname(dirname(__file__)), file_name)
+    default = join(dirname(__file__), file_name)
     if exists(default):
         files.append(default)
 

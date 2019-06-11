@@ -12,5 +12,6 @@ setup(
     long_description=open("README.md").read(),
     entry_points={
         'console_scripts': ['{0}={0}.__main__:App'.format(name)],
-    }
+    },
+    include_package_data=True
 )
