@@ -7,7 +7,7 @@ from .ast import CommandTok
 from . import parse_with_default
 
 
-class ArgParser(object):
+class App(object):
 
     cmds = {
         'list_commands': {
@@ -139,4 +139,4 @@ class ArgParser(object):
             f.write(root.dump_pos_map().as_text())
 
 
-ArgParser()
+App()
