@@ -1,10 +1,15 @@
 class TextPos:
-    def __init__(self, col, line):
+    def __init__(self, tot, col, line):
+        self.tot = tot
         self.col = col
         self.line = line
 
+    def new_line(self):
+        return TextPos(self.tot + 1, 0, self.line + 1)
+
     def as_dict(self):
         return {
+            'offset': self.tot,
             'col': self.col,
             'line': self.line
         }
@@ -17,9 +22,10 @@ class TextPos:
 
     def __add__(self, num):
         if isinstance(num, int):
-            return TextPos(self.col + num, self.line)
+            return TextPos(self.tot + num, self.col + num, self.line)
         elif isinstance(num, TextDeltaPos):
-            return TextPos(self.col if num.line == 0 else num.col,
+            return TextPos(self.tot + num.tot,
+                           self.col if num.line == 0 else num.col,
                            self.line + num.line)
         else:
             raise ValueError('Cannot add TextPos with {}'.format(num))
@@ -33,6 +39,7 @@ class TextPos:
             return TextDeltaPos(0, 0)
         else:
             return TextDeltaPos(
+                self.tot - other.tot,
                 self.col - other.col if self.line == other.line else other.col,
                 self.line - other.line
             )
@@ -44,15 +51,13 @@ class TextPos:
         if other == 0:
             return True
         assert isinstance(other, TextPos)
-        return self.line > other.line or (self.line == other.line
-                                          and self.col > other.col)
+        return self.tot > other.tot
 
     def __ge__(self, other):
         if other == 0:
             return True
         assert isinstance(other, TextPos)
-        return self.line > other.line or (self.line == other.line
-                                          and self.col >= other.col)
+        return self.tot > other.tot
 
     def __lt__(self, other):
         if other == 0:
@@ -70,10 +75,12 @@ class TextPos:
         if other == 0:
             return False
         assert isinstance(other, TextPos)
-        return self.line == other.line and self.col == other.col
+        return (self.tot == other.tot
+                and self.line == other.line
+                and self.col == other.col)
 
 
-text_origin = TextPos(0, 1)
+text_origin = TextPos(0, 0, 0)
 
 
 class TextDeltaPos(TextPos):
@@ -81,9 +88,9 @@ class TextDeltaPos(TextPos):
     def from_src(self, src):
         lines = src.split('\n')
         if lines:
-            return TextDeltaPos(len(lines[-1]), len(lines))
+            return TextDeltaPos(len(src), len(lines[-1]), len(lines))
         else:
-            return TextDeltaPos(0, 0)
+            return TextDeltaPos(0, 0, 0)
 
     def __str__(self):
         if self.line == 0:

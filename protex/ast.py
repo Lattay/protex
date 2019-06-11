@@ -43,13 +43,13 @@ class Word(Token):
 
 class WhiteSpace(Token):
     def render(self, at_pos):
-        self._render(at_pos, at_pos + TextDeltaPos(0, 2))
+        self._render(at_pos, at_pos + TextDeltaPos.from_src(' '))
         return ' '
 
 
 class NewParagraph(WhiteSpace):
     def render(self, at_pos):
-        self._render(at_pos, at_pos + TextDeltaPos(0, 2))
+        self._render(at_pos, at_pos + TextDeltaPos.from_src('\n\n'))
         return '\n\n'
 
 

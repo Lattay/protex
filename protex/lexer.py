@@ -1,7 +1,7 @@
 import string
 from io import StringIO
 from os.path import normpath, join, dirname
-from .text_pos import text_origin, TextPos
+from .text_pos import text_origin
 from .ast import (
     Word, CommandTok, CloseBra, OpenBra, WhiteSpace, NewParagraph,
     CloseSqBra, OpenSqBra
@@ -46,7 +46,7 @@ class Lexer:
     def read(self):
         c = self.file.read(1)
         if c == '\n':
-            self.pos = TextPos(0, self.pos.line + 1)
+            self.pos = self.pos.new_line()
         else:
             self.pos += 1
         return c
