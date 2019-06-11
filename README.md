@@ -22,27 +22,27 @@ directory.
 A command prototype tell the parser how many arguments at maximum take the
 command and how to use them. There are four sections in *commands.json* files.
 The three below consist in a list of special prototype:
-- `print_name`: the command take no argument and is replace by its name (ex: `\phi`, `\sum`)
-- `print_one`: the command take one argument and print it unchanged
-- `discard`: the command take up to 100 arguments and print nothing
+* `print_name`: the command take no argument and is replace by its name (ex: `\phi`, `\sum`)
+* `print_one`: the command take one argument and print it unchanged
+* `discard`: the command take up to 100 arguments and print nothing
 The fourth section is `other` and have a mapping as value. The
 mapping is of the form `{<command_name>: [<# max args>, <template>]}`.
 The template is a string where everything will be printed as is but:
-- `%0` will be replace with the command name
-- `%1` will be replaced with the first argument (and so on for `%2`, `%3` etc without limit)
-- `%%` will be replaced with a raw `%`
-- `%` followed by anything else will not be replaced
+* `%0` will be replace with the command name
+* `%1` will be replaced with the first argument (and so on for `%2`, `%3` etc without limit)
+* `%%` will be replaced with a raw `%`
+* `%` followed by anything else will not be replaced
 
 When parsing the TeX source, the argument collection end as soon as one of
 those conditions is fulfilled:
-- the max number of arguments have been reached
-- the next token is a blank
-- the next token is a "word" of more than one letter (a word a sequence of
+* the max number of arguments have been reached
+* the next token is a blank
+* the next token is a "word" of more than one letter (a word a sequence of
   contiguous everything that is neither whitespace nor a special thing in TeX
   (comments, commands, curly brackets, square bracket), be carefull,
   punctuation like "." is a valid one letter word that can be the last argument
   of a command)
-- the last argument was a non bracketed one letter "word"
+* the last argument was a non bracketed one letter "word"
 
 Those rules can seem a bit convoluted but if you have a valid TeX document and
 valid command prototypes, the result should be what you expect.
