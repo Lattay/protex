@@ -22,3 +22,7 @@ this case perfectly).
 
 A per-project file *.protex.json* updates the definitions from
 *commands.json* if available.
+
+# Notes
+
+The requirements.txt is only for development and test, not for normal usage.
