@@ -30,6 +30,7 @@ class Lexer:
         file = open(filename)
         return cls(filename, file, ident_chars=ident_chars, special_chars=special_chars)
 
+    @classmethod
     def from_source(cls, source, filename=None, ident_chars=None, special_chars=set()):
         if filename is None:
             _filename = 'anonym'
