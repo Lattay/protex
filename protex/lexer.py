@@ -51,7 +51,7 @@ class Lexer:
             self.pos += 1
         return c
 
-    def token(self):
+    def tokens(self):
         c = self.read()
         buff_init_pos = self.pos
         while c != '':

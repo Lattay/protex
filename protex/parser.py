@@ -24,7 +24,7 @@ class Parser:
     def __init__(self, lexer, commands, filename='anonym', **opts):
         self._tok_back_stack = []
         self.lexer = lexer
-        self._tokens = lexer.token()
+        self._tokens = lexer.tokens()
         self.commands = commands
         self.options = opts
         self.filename = filename

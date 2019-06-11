@@ -93,7 +93,7 @@ class App(object):
                 return True
 
         res = sorted(set(
-            tok.name for lx in lexers for tok in lx.token()
+            tok.name for lx in lexers for tok in lx.tokens()
             if isinstance(tok, CommandTok) and keep(tok)
         ))
 
@@ -123,7 +123,7 @@ class App(object):
             output_type = 'clean'
 
         if args.debug:
-            print(list(Lexer.from_file(args.file).token()))
+            print(list(Lexer.from_file(args.file).tokens()))
             root = parse_with_default(args.file, expand_input)
             print(root.elems)
             exit(0)
