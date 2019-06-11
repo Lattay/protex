@@ -5,7 +5,15 @@ class TextPos:
         self.line = line
 
     def new_line(self):
-        return TextPos(self.offset + 1, 0, self.line + 1)
+        return self.__class__(self.offset + 1, 0, self.line + 1)
+
+    @classmethod
+    def from_source(cls, src):
+        lines = src.split('\n')
+        if lines:
+            return cls(len(src), len(lines[-1]), len(lines))
+        else:
+            return cls(0, 0, 1)
 
     def as_dict(self):
         return {
@@ -85,12 +93,11 @@ text_origin = TextPos(0, 0, 1)
 
 class TextDeltaPos(TextPos):
     @classmethod
-    def from_source(self, src):
-        lines = src.split('\n')
-        if lines:
-            return TextDeltaPos(len(src), len(lines[-1]), len(lines))
+    def from_source(cls, src):
+        if src:
+            return super().from_source(src)
         else:
-            return TextDeltaPos(0, 0, 0)
+            return cls(0, 0, 0)
 
     def __str__(self):
         if self.line == 0:

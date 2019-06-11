@@ -12,7 +12,6 @@ whitespaces = set(string.whitespace)
 
 
 class Lexer:
-
     ident_chars = set(string.ascii_letters).union(set(string.digits)).union({
         '-', '+', '*'
     })
@@ -43,8 +42,8 @@ class Lexer:
 
     def open_newfile(self, source_file):
         path = normpath(join(dirname(self.source_file), source_file))
-        return Lexer.from_file(path, ident_chars=self.ident_chars,
-                               special_chars=self.special_chars)
+        return self.__class__.from_file(path, ident_chars=self.ident_chars,
+                                        special_chars=self.special_chars)
 
     def read(self):
         c = self.file.read(1)

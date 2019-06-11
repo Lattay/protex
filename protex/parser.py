@@ -104,8 +104,8 @@ class Parser:
         blank = BlankToken(input_tok.src_start, next_node.src_end)
         if self.options.get('expand_input', False):
             filename = next_node.elems[0].content
-            content, _ = Parser(self.lexer.open_newfile(filename),
-                                self.commands)._parse(0)
+            content, _ = self.__class__(self.lexer.open_newfile(filename),
+                                        self.commands)._parse(0)
             self.tok_push_back(Root(filename, content))
         return blank
 
