@@ -1,6 +1,6 @@
 from .ast import (
-    CommandTok, CloseBra, OpenBra, PlainText, Command, Group, NewParagraph,
-    Root, BlankToken, CloseSqBra, OpenSqBra
+    CommandTok, CloseBra, OpenBra, Word, Command, Group, NewParagraph,
+    WhiteSpace, Root, BlankToken, CloseSqBra, OpenSqBra
 )
 
 
@@ -67,30 +67,37 @@ class Parser:
         next_arg = self._parse_node(deep, cmd_mode=True)
         c = 0
         while not (c == prototype.expected_narg
-                   or isinstance(next_arg, CloseBra)
-                   or next_arg is None
-                   or isinstance(next_arg, (PlainText, NewParagraph))):
+                   or isinstance(next_arg, (CloseBra, WhiteSpace, Word))
+                   or next_arg is None):
             args.append(next_arg)
             c += 1
             next_arg = self._parse_node(deep, cmd_mode=True)
 
-        if c == prototype.expected_narg or isinstance(next_arg, CloseBra):
+        if c == prototype.expected_narg:
+            # reached the end of the arg list
             self.tok_push_back(next_arg)
 
-        elif isinstance(next_arg, PlainText):
-            if not next_arg.content[0].isspace():
-                args.append(PlainText(next_arg.src_start, next_arg.content[0]))
-            if len(next_arg.content) > 1:
-                self.tok_push_back(
-                    PlainText(next_arg.src_start + 1, next_arg.content[1:])
-                )
+        elif isinstance(next_arg, Word):
+            # non bracketed arg ?
+            if len(next_arg.content) == 1 and len(args) == 0:
+                # very likely
+                args.append(next_arg)
+            else:
+                # propably not
+                self.tok_push_back(next_arg)
+
+        elif isinstance(next_arg, WhiteSpace):
+            if isinstance(next_arg, NewParagraph):
+                # keep the NewParagraph
+                self.tok_push_back(next_arg)
+
         return args
 
     def _parse_input(self, input_tok, deep):
         next_node = self._parse_node(deep)
         if not (isinstance(next_node, Group)
                 and next_node.elems
-                and isinstance(next_node.elems[0], PlainText)):
+                and isinstance(next_node.elems[0], Word)):
             raise SyntaxError(
                 'Illformed input command at {}'.format(next_node.src_start)
             )

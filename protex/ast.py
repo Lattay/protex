@@ -28,7 +28,7 @@ class Token(AstNode):
         return [ContiguousPosMap(self.src_start, self.src_end, self.res_start, self.res_end)]
 
 
-class PlainText(Token):
+class Word(Token):
     def __init__(self, start, content):
         self.content = content
         super().__init__(start, start + len(content))
@@ -38,10 +38,16 @@ class PlainText(Token):
         return self.content
 
     def __repr__(self):
-        return '<PlainText:{}>'.format(self.content[:5])
+        return '<Word:{}>'.format(self.content[:5])
 
 
-class NewParagraph(Token):
+class WhiteSpace(Token):
+    def render(self, at_pos):
+        self._render(at_pos, at_pos + TextDeltaPos(0, 2))
+        return ' '
+
+
+class NewParagraph(WhiteSpace):
     def render(self, at_pos):
         self._render(at_pos, at_pos + TextDeltaPos(0, 2))
         return '\n\n'
@@ -63,12 +69,12 @@ class CloseBra(BlankToken):
         super().__init__(pos, pos + 1)
 
 
-class OpenSqBra(PlainText):
+class OpenSqBra(Word):
     def __init__(self, pos):
         super().__init__(pos, '[')
 
 
-class CloseSqBra(PlainText):
+class CloseSqBra(Word):
     def __init__(self, pos):
         super().__init__(pos, ']')
 
@@ -145,7 +151,7 @@ class CommandTemplate:
             if isinstance(tok, int):
                 res.append(args[tok])
             else:
-                res.append(PlainText(src_start, tok))
+                res.append(Word(src_start, tok))
         return res
 
 

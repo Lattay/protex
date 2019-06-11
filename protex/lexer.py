@@ -3,7 +3,7 @@ from io import StringIO
 from os.path import normpath, join, dirname
 from .text_pos import text_origin, TextPos
 from .ast import (
-    PlainText, CommandTok, CloseBra, OpenBra, NewParagraph,
+    Word, CommandTok, CloseBra, OpenBra, WhiteSpace, NewParagraph,
     CloseSqBra, OpenSqBra
 )
 
@@ -58,7 +58,7 @@ class Lexer:
             if c in self.special_chars:
 
                 if self.buffer:
-                    yield PlainText(buff_init_pos, ''.join(self.buffer))
+                    yield Word(buff_init_pos, ''.join(self.buffer))
                     self.buffer = []
 
                 if c == '%':
@@ -95,20 +95,21 @@ class Lexer:
                     yield OpenSqBra(self.pos)
                     c = self.read()
 
-            elif c == '\n':
+            elif c in string.whitspaces:
+                if self.buffer:
+                    yield Word(buff_init_pos, ''.join(self.buffer))
+                    self.buffer = []
                 newlines = 0
                 new_par_pos = self.pos
-                while c == '\n':
-                    newlines += 1
+                while c in string.whitspaces:
+                    if c == '\n':
+                        newlines += 1
                     c = self.read()
 
                 if newlines > 1:
-                    if self.buffer:
-                        yield PlainText(buff_init_pos, ''.join(self.buffer))
-                        self.buffer = []
                     yield NewParagraph(new_par_pos, self.pos)
                 else:
-                    self.buffer.append('\n')
+                    yield WhiteSpace(new_par_pos, self.pos)
             else:
                 if not self.buffer:
                     buff_init_pos = self.pos
@@ -116,4 +117,4 @@ class Lexer:
                 c = self.read()
 
         if self.buffer:
-            yield PlainText(buff_init_pos, ''.join(self.buffer))
+            yield Word(buff_init_pos, ''.join(self.buffer))
