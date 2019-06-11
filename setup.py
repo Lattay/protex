@@ -10,6 +10,7 @@ setup(
     author_email='theo.cavignac@gmail.com',
     packages=[name],
     long_description=open("README.md").read(),
+    long_description_content_type='text/markdown',
     scripts=['bin/protex'],
     package_data={name: ['commands.json']},
     include_package_data=True,
