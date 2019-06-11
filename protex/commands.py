@@ -75,7 +75,7 @@ class IllformedCommandJSON(ValueError):
     pass
 
 
-class CommandLoader:
+class CommandDict:
     def __init__(self, command_dict, default_proto=None):
         self.dict = command_dict
         self.default = default_proto
@@ -153,9 +153,9 @@ def command_file_seek(start_dir, file_name='commands.json', hidden_name=None):
 def load_all_files(name='commands.json', default_proto=DiscardPrototype):
     files = command_file_seek('.', file_name=name)
 
-    commands = CommandLoader({}, default_proto)
+    commands = CommandDict({}, default_proto)
     for f in files:
-        new = CommandLoader.from_file(f)
+        new = CommandDict.from_file(f)
         commands.update(new)
 
     return commands

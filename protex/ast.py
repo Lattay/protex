@@ -34,7 +34,7 @@ class Word(Token):
         super().__init__(start, start + len(content))
 
     def render(self, at_pos):
-        self._render(at_pos, at_pos + TextDeltaPos.from_src(self.content))
+        self._render(at_pos, at_pos + TextDeltaPos.from_source(self.content))
         return self.content
 
     def __repr__(self):
@@ -43,13 +43,13 @@ class Word(Token):
 
 class WhiteSpace(Token):
     def render(self, at_pos):
-        self._render(at_pos, at_pos + TextDeltaPos.from_src(' '))
+        self._render(at_pos, at_pos + TextDeltaPos.from_source(' '))
         return ' '
 
 
 class NewParagraph(WhiteSpace):
     def render(self, at_pos):
-        self._render(at_pos, at_pos + TextDeltaPos.from_src('\n\n'))
+        self._render(at_pos, at_pos + TextDeltaPos.from_source('\n\n'))
         return '\n\n'
 
 
@@ -98,7 +98,7 @@ class Group(AstNode):
         new_pos = at_pos
         for elem in self.elems:
             eres = elem.render(new_pos)
-            new_pos += TextDeltaPos.from_src(eres)
+            new_pos += TextDeltaPos.from_source(eres)
             res.append(eres)
         self._render(at_pos, new_pos)
         return ''.join(res)
@@ -169,7 +169,7 @@ class Command(AstNode):
         new_pos = at_pos
         for tok in self.toks:
             tres = tok.render(new_pos)
-            new_pos += TextDeltaPos.from_src(tres)
+            new_pos += TextDeltaPos.from_source(tres)
             res.append(tres)
         self._render(at_pos, new_pos)
         return ''.join(res)

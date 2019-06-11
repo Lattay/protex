@@ -85,7 +85,7 @@ text_origin = TextPos(0, 0, 0)
 
 class TextDeltaPos(TextPos):
     @classmethod
-    def from_src(self, src):
+    def from_source(self, src):
         lines = src.split('\n')
         if lines:
             return TextDeltaPos(len(src), len(lines[-1]), len(lines))
