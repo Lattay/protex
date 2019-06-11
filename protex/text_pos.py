@@ -23,7 +23,7 @@ class TextPos:
         }
 
     def __repr__(self):
-        return self.__class__.__name__ + '({}, {})'.format(self.col, self.line)
+        return self.__class__.__name__ + '({}, {}, {})'.format(self.offset, self.col, self.line)
 
     def __str__(self):
         return 'L{}C{}'.format(self.line, self.col)
@@ -33,8 +33,8 @@ class TextPos:
             return TextPos(self.offset + num, self.col + num, self.line)
         elif isinstance(num, TextDeltaPos):
             return TextPos(self.offset + num.offset,
-                           self.col if num.line == 0 else num.col,
-                           self.line + num.line)
+                           self.col + num.col if num.line <= 1 else num.col,
+                           self.line + num.line - 1)
         else:
             raise ValueError('Cannot add TextPos with {}'.format(num))
 
