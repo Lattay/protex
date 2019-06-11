@@ -10,8 +10,8 @@ setup(
     author_email='theo.cavignac@gmail.com',
     packages=[name],
     long_description=open("README.md").read(),
-    entry_points={
-        'console_scripts': ['{0}={0}.__main__:App'.format(name)],
-    },
-    include_package_data=True
+    scripts=['bin/protex'],
+    package_data={name: ['commands.json']},
+    include_package_data=True,
+    license='MIT',
 )

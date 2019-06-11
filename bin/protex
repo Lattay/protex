@@ -1,0 +1,7 @@
+#!/dummy/path/to/python
+from protex import cli
+
+if __name__ != '__main__':
+    exit(1)
+
+cli.App()

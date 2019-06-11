@@ -9,3 +9,8 @@ def parse_with_default(filename, expand_input=False):
     parser = Parser(lexer, commands, filename=filename,
                     expand_input=expand_input)
     return parser.parse()
+
+
+def run_cli():
+    import cli
+    cli.App()
