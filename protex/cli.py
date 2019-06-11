@@ -2,10 +2,6 @@ import argparse
 import sys
 import json
 
-from .lexer import Lexer
-from .ast import CommandTok
-from . import parse_with_default
-
 
 class App(object):
 
@@ -81,15 +77,31 @@ class App(object):
                             help='debugging tools')
 
     def list_commands(self, args):
+        from .lexer import Lexer
+        from .ast import CommandTok
+
         lexers = (Lexer.from_file(filename) for filename in args.files)
+
+        if args.unknown:
+            from .commands import load_all_files
+            cmds = load_all_files(default_proto=False)
+
+            def keep(token):
+                return not cmds.get(token.name)
+        else:
+            def keep(_):
+                return True
+
         res = sorted(set(
             tok.name for lx in lexers for tok in lx.token()
-            if isinstance(tok, CommandTok)
+            if isinstance(tok, CommandTok) and keep(tok)
         ))
-        for cmd in res:
-            print(cmd)
+
+        print(*res, sep='\n')
 
     def clean(self, args):
+        from . import parse_with_default
+
         if args.output:
             try:
                 f = open(args.output, 'w')

@@ -150,10 +150,10 @@ def command_file_seek(start_dir, file_name='commands.json', hidden_name=None):
     return reversed(files)
 
 
-def load_all_files(name='commands.json'):
+def load_all_files(name='commands.json', default_proto=DiscardPrototype):
     files = command_file_seek('.', file_name=name)
 
-    commands = CommandLoader({}, DiscardPrototype)
+    commands = CommandLoader({}, default_proto)
     for f in files:
         new = CommandLoader.from_file(f)
         commands.update(new)
