@@ -28,6 +28,7 @@ The three below consist in a list of special prototype:
 The fourth section is `other` and have a mapping as value. The
 mapping is of the form `{<command_name>: [<# max args>, <template>]}`.
 The template is a string where everything will be printed as is but:
+
 * `%0` will be replace with the command name
 * `%1` will be replaced with the first argument (and so on for `%2`, `%3` etc without limit)
 * `%%` will be replaced with a raw `%`
@@ -35,6 +36,7 @@ The template is a string where everything will be printed as is but:
 
 When parsing the TeX source, the argument collection end as soon as one of
 those conditions is fulfilled:
+
 * the max number of arguments have been reached
 * the next token is a blank
 * the next token is a "word" of more than one letter (a word a sequence of
