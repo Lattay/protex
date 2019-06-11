@@ -8,6 +8,9 @@ from .ast import (
 )
 
 
+whitespaces = set(string.whitespace)
+
+
 class Lexer:
 
     ident_chars = set(string.ascii_letters).union(set(string.digits)).union({
@@ -36,8 +39,7 @@ class Lexer:
             _filename = 'anonym'
         else:
             _filename = filename
-        return cls(StringIO(source), _filename,
-                   ident_chars=ident_chars, special_chars=special_chars)
+        return cls(_filename, StringIO(source), ident_chars=ident_chars, special_chars=special_chars)
 
     def open_newfile(self, source_file):
         path = normpath(join(dirname(self.source_file), source_file))
@@ -48,7 +50,7 @@ class Lexer:
         c = self.file.read(1)
         if c == '\n':
             self.pos = self.pos.new_line()
-        else:
+        elif c != '':
             self.pos += 1
         return c
 
@@ -96,13 +98,13 @@ class Lexer:
                     yield OpenSqBra(self.pos)
                     c = self.read()
 
-            elif c in string.whitspaces:
+            elif c in whitespaces:
                 if self.buffer:
                     yield Word(buff_init_pos, ''.join(self.buffer))
                     self.buffer = []
                 newlines = 0
                 new_par_pos = self.pos
-                while c in string.whitspaces:
+                while c in whitespaces:
                     if c == '\n':
                         newlines += 1
                     c = self.read()

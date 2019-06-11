@@ -1,15 +1,15 @@
 class TextPos:
-    def __init__(self, tot, col, line):
-        self.tot = tot
+    def __init__(self, offset, col, line):
+        self.offset = offset
         self.col = col
         self.line = line
 
     def new_line(self):
-        return TextPos(self.tot + 1, 0, self.line + 1)
+        return TextPos(self.offset + 1, 0, self.line + 1)
 
     def as_dict(self):
         return {
-            'offset': self.tot,
+            'offset': self.offset,
             'col': self.col,
             'line': self.line
         }
@@ -22,9 +22,9 @@ class TextPos:
 
     def __add__(self, num):
         if isinstance(num, int):
-            return TextPos(self.tot + num, self.col + num, self.line)
+            return TextPos(self.offset + num, self.col + num, self.line)
         elif isinstance(num, TextDeltaPos):
-            return TextPos(self.tot + num.tot,
+            return TextPos(self.offset + num.offset,
                            self.col if num.line == 0 else num.col,
                            self.line + num.line)
         else:
@@ -39,7 +39,7 @@ class TextPos:
             return TextDeltaPos(0, 0)
         else:
             return TextDeltaPos(
-                self.tot - other.tot,
+                self.offset - other.offset,
                 self.col - other.col if self.line == other.line else other.col,
                 self.line - other.line
             )
@@ -51,13 +51,13 @@ class TextPos:
         if other == 0:
             return True
         assert isinstance(other, TextPos)
-        return self.tot > other.tot
+        return self.offset > other.offset
 
     def __ge__(self, other):
         if other == 0:
             return True
         assert isinstance(other, TextPos)
-        return self.tot > other.tot
+        return self.offset > other.offset
 
     def __lt__(self, other):
         if other == 0:
@@ -75,12 +75,12 @@ class TextPos:
         if other == 0:
             return False
         assert isinstance(other, TextPos)
-        return (self.tot == other.tot
+        return (self.offset == other.offset
                 and self.line == other.line
                 and self.col == other.col)
 
 
-text_origin = TextPos(0, 0, 0)
+text_origin = TextPos(0, 0, 1)
 
 
 class TextDeltaPos(TextPos):
