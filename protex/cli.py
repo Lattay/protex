@@ -59,7 +59,8 @@ class App(object):
     def parse_clean(self, parser):
         '''
         '''
-        parser.add_argument('file', metavar='SOURCE', help='source file')
+        parser.add_argument('file', metavar='SOURCE', default='-',
+                            help='source file (omit or use - for stdin)')
         parser.add_argument('-o', '--output', nargs=1, default=None,
                             help='output file. stdout is used if omited.')
         parser.add_argument('-i', '--expand-input', action='store_true',
@@ -100,7 +101,7 @@ class App(object):
         print(*res, sep='\n')
 
     def clean(self, args):
-        from . import parse_with_default
+        from . import parse_with_default, parse_stdin_with_default
 
         if args.output:
             try:
@@ -123,12 +124,16 @@ class App(object):
             output_type = 'clean'
 
         if args.debug:
+            from .lexer import Lexer
             print(list(Lexer.from_file(args.file).tokens()))
             root = parse_with_default(args.file, expand_input)
             print(root.elems)
             exit(0)
 
-        root = parse_with_default(args.file, expand_input)
+        if args.file == '-':
+            root = parse_stdin_with_default(expand_input=expand_input)
+        else:
+            root = parse_with_default(args.file, expand_input=expand_input)
 
         if output_type == 'json':
             d = {
