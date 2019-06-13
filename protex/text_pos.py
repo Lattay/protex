@@ -225,7 +225,7 @@ class RootPosMap(PosMap):
                 })
         return d
 
-    def src_to_dest_interval(self, src_start, src_end, filename=None):
+    def src_to_dest_range(self, src_start, src_end, filename=None):
         before_start = self.src_to_dest(src_start, filename=filename)
 
         before_end, after_end = self.src_to_dest(
@@ -244,7 +244,7 @@ class RootPosMap(PosMap):
 
         return before_start, end
 
-    def dest_to_src_interval(self, dest_start, dest_end):
+    def dest_to_src_range(self, dest_start, dest_end):
         filename_start, before_start = self.dest_to_src(dest_start)
 
         filename_end, before_end, after_end = self.dest_to_src(
