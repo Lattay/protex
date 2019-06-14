@@ -4,7 +4,7 @@ name = 'protex'
 
 setup(
     name=name,
-    version='1.0',
+    version='0.1.0',
     description='Clean Latex sources without loosing track of positions',
     author='Théo (Lattay) Cavignac',
     author_email='theo.cavignac@gmail.com',

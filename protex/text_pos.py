@@ -111,17 +111,17 @@ class PosMap:
 
 
 class ContiguousPosMap(PosMap):
-    def __init__(self, src_start, src_end, final_start, final_end):
+    def __init__(self, src_start, src_end, dest_start, dest_end):
         self.src_start = src_start
         self.src_end = src_end
-        self.final_start = final_start
-        self.final_end = final_end
+        self.dest_start = dest_start
+        self.dest_end = dest_end
 
     def src_contains(self, pos):
         return self.src_start <= pos and self.src_end >= pos
 
     def dest_contains(self, pos):
-        return self.final_start <= pos and self.final_end >= pos
+        return self.dest_start <= pos and self.dest_end >= pos
 
     def src_rel(self, pos):
         if self.src_contains(pos):
@@ -134,7 +134,7 @@ class ContiguousPosMap(PosMap):
     def dest_rel(self, pos):
         if self.dest_contains(pos):
             return 'in'
-        elif pos < self.final_start:
+        elif pos < self.dest_start:
             return 'before'
         else:
             return 'after'
@@ -150,10 +150,10 @@ class ContiguousPosMap(PosMap):
     def dest_dist(self, pos):
         if self.dest_contains(pos):
             return 0
-        elif pos < self.final_start:
-            return self.final_start - pos
+        elif pos < self.dest_start:
+            return self.dest_start - pos
         else:
-            return pos - self.final_end
+            return pos - self.dest_end
 
 
 class IntervalOnTwoFilesError(Exception):
@@ -221,7 +221,7 @@ class RootPosMap(PosMap):
             else:
                 d[fname].append({
                     'src': (obj.src_start.as_dict(), obj.src_end.as_dict()),
-                    'dest': (obj.final_start.as_dict(), obj.final_end.as_dict())
+                    'dest': (obj.dest_start.as_dict(), obj.dest_end.as_dict())
                 })
         return d
 
