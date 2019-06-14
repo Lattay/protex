@@ -21,11 +21,12 @@ class Lexer:
     def __init__(self, source_name, stream, ident_chars=None, special_chars=set()):
         self.source_file = source_name
         self.file = stream
-        self.buffer = []
         self.pos = text_origin
         if ident_chars is not None:
             self.ident_chars = ident_chars
         self.special_chars = self.special_chars.union(special_chars)
+        self._first = True
+        self._end_reached = False
 
     @classmethod
     def from_file(cls, filename, ident_chars=None, special_chars=set()):
@@ -47,21 +48,27 @@ class Lexer:
 
     def read(self):
         c = self.file.read(1)
-        if c == '\n':
+        if self._first:
+            self._first = False
+        elif c == '\n':
             self.pos = self.pos.new_line()
-        elif c != '':
+        elif c != '' or not self._end_reached:
             self.pos += 1
+
+        if c == '':
+            self._end_reached = True
         return c
 
     def tokens(self):
         c = self.read()
         buff_init_pos = self.pos
+        buffer = []
         while c != '':
             if c in self.special_chars:
 
-                if self.buffer:
-                    yield Word(buff_init_pos, ''.join(self.buffer))
-                    self.buffer = []
+                if buffer:
+                    yield Word(buff_init_pos, ''.join(buffer))
+                    buffer = []
 
                 if c == '%':
                     while c != '\n':
@@ -70,16 +77,16 @@ class Lexer:
 
                 elif c == '\\':
                     init_pos = self.pos
-                    self.buffer = [c]
+                    buffer = [c]
                     c = self.read()
                     while c in self.ident_chars:
-                        self.buffer.append(c)
+                        buffer.append(c)
                         c = self.read()
-                    if len(self.buffer) == 1 and c in self.special_command_chars:
-                        self.buffer.append(c)
+                    if len(buffer) == 1 and c in self.special_command_chars:
+                        buffer.append(c)
                         c = self.read()
-                    yield CommandTok(init_pos, ''.join(self.buffer))
-                    self.buffer = []
+                    yield CommandTok(init_pos, ''.join(buffer))
+                    buffer = []
 
                 elif c == '}':
                     yield CloseBra(self.pos)
@@ -98,9 +105,9 @@ class Lexer:
                     c = self.read()
 
             elif c in whitespaces:
-                if self.buffer:
-                    yield Word(buff_init_pos, ''.join(self.buffer))
-                    self.buffer = []
+                if buffer:
+                    yield Word(buff_init_pos, ''.join(buffer))
+                    buffer = []
                 newlines = 0
                 new_par_pos = self.pos
                 while c in whitespaces:
@@ -113,10 +120,10 @@ class Lexer:
                 else:
                     yield WhiteSpace(new_par_pos, self.pos)
             else:
-                if not self.buffer:
+                if not buffer:
                     buff_init_pos = self.pos
-                self.buffer.append(c)
+                buffer.append(c)
                 c = self.read()
 
-        if self.buffer:
-            yield Word(buff_init_pos, ''.join(self.buffer))
+        if buffer:
+            yield Word(buff_init_pos, ''.join(buffer))

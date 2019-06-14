@@ -10,10 +10,7 @@ class TextPos:
     @classmethod
     def from_source(cls, src):
         lines = src.split('\n')
-        if lines:
-            return cls(len(src), len(lines[-1]), len(lines))
-        else:
-            return cls(0, 0, 1)
+        return cls(len(src), len(lines[-1]), len(lines))
 
     def as_dict(self):
         return {
@@ -30,11 +27,11 @@ class TextPos:
 
     def __add__(self, num):
         if isinstance(num, int):
-            return TextPos(self.offset + num, self.col + num, self.line)
+            return self.__class__(self.offset + num, self.col + num, self.line)
         elif isinstance(num, TextDeltaPos):
-            return TextPos(self.offset + num.offset,
-                           self.col + num.col if num.line <= 1 else num.col,
-                           self.line + num.line - 1)
+            return self.__class__(self.offset + num.offset,
+                                  (self.col + num.col) if num.line == 0 else num.col,
+                                  self.line + num.line)
         else:
             raise ValueError('Cannot add TextPos with {}'.format(num))
 
@@ -43,14 +40,11 @@ class TextPos:
 
     def __sub__(self, other):
         assert self >= other
-        if self == other:
-            return TextDeltaPos(0, 0)
-        else:
-            return TextDeltaPos(
-                self.offset - other.offset,
-                self.col - other.col if self.line == other.line else other.col,
-                self.line - other.line
-            )
+        return TextDeltaPos(
+            self.offset - other.offset,
+            self.col - (other.col if self.line == other.line else 0),
+            self.line - other.line
+        )
 
     def __rsub__(self, other):
         return self - other
@@ -65,7 +59,7 @@ class TextPos:
         if other == 0:
             return True
         assert isinstance(other, TextPos)
-        return self.offset > other.offset
+        return self.offset >= other.offset
 
     def __lt__(self, other):
         if other == 0:
@@ -88,16 +82,14 @@ class TextPos:
                 and self.col == other.col)
 
 
-text_origin = TextPos(0, 0, 1)
+text_origin = TextPos.from_source('')
 
 
 class TextDeltaPos(TextPos):
     @classmethod
     def from_source(cls, src):
-        if src:
-            return super().from_source(src)
-        else:
-            return cls(0, 0, 0)
+        lines = src.split('\n')
+        return cls(len(src), len(lines[-1]), len(lines) - 1)
 
     def __str__(self):
         if self.line == 0:
@@ -138,22 +130,6 @@ class ContiguousPosMap(PosMap):
             return 'before'
         else:
             return 'after'
-
-    def src_dist(self, pos):
-        if self.src_contains(pos):
-            return 0
-        elif pos < self.src_start:
-            return self.src_start - pos
-        else:
-            return pos - self.src_end
-
-    def dest_dist(self, pos):
-        if self.dest_contains(pos):
-            return 0
-        elif pos < self.dest_start:
-            return self.dest_start - pos
-        else:
-            return pos - self.dest_end
 
 
 class IntervalOnTwoFilesError(Exception):
@@ -278,15 +254,17 @@ class RootPosMap(PosMap):
         for map in seq:
             rel = map.src_rel(pos)
             if rel == 'in':
-                before = map.dest_start + (pos - map.src_start)
+                before = (map.dest_start + (pos - map.src_start))
                 after = None
                 true_match = True
                 break
             elif rel == 'before':
-                before = map.dest_end
-            elif rel == 'after':
-                after = map.dest_start
+                # pos is before obj so obj is after pos
+                after = map.src_start
                 break
+            elif rel == 'after':
+                # pos is after obj so obj is before pos
+                before = map.src_end
 
         if return_pair:
             if true_match:
@@ -306,15 +284,17 @@ class RootPosMap(PosMap):
             else:
                 rel = obj.dest_rel(pos)
                 if rel == 'in':
-                    before = obj.src_start + (pos - obj.dest_start)
+                    before = (obj.src_start + (pos - obj.dest_start))
                     after = None
                     true_match = True
                     break
                 elif rel == 'before':
-                    before = obj.src_end
-                elif rel == 'after':
+                    # pos is before obj so obj is after pos
                     after = obj.src_start
                     break
+                elif rel == 'after':
+                    # pos is after obj so obj is before pos
+                    before = obj.src_end
 
         if return_pair:
             if true_match:

@@ -31,7 +31,7 @@ class Token(AstNode):
 class Word(Token):
     def __init__(self, start, content):
         self.content = content
-        super().__init__(start, start + len(content))
+        super().__init__(start, start + TextDeltaPos.from_source(content))
 
     def render(self, at_pos):
         self._render(at_pos, at_pos + TextDeltaPos.from_source(self.content))
@@ -82,7 +82,7 @@ class CloseSqBra(Word):
 class CommandTok(BlankToken):
     def __init__(self, start, content):
         self.name = content[1:]
-        super().__init__(start, start + len(content))
+        super().__init__(start, start + TextDeltaPos.from_source(content))
 
     def __repr__(self):
         return '<CommandTok: {}>'.format(self.name)
