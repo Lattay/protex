@@ -1,11 +1,12 @@
 class TextPos:
     def __init__(self, offset, col, line):
+        assert offset >= -1
         self.offset = offset
         self.col = col
         self.line = line
 
     def new_line(self):
-        return self.__class__(self.offset + 1, 0, self.line + 1)
+        return self.__class__((self.offset + 1) if self.offset >= 0 else -1, 0, self.line + 1)
 
     @classmethod
     def from_source(cls, src):
@@ -27,9 +28,9 @@ class TextPos:
 
     def __add__(self, num):
         if isinstance(num, int):
-            return self.__class__(self.offset + num, self.col + num, self.line)
+            return self.__class__((self.offset + num) if self.offset >= 0 else -1, self.col + num, self.line)
         elif isinstance(num, TextDeltaPos):
-            return self.__class__(self.offset + num.offset,
+            return self.__class__((self.offset + num.offset) if self.offset >= 0 else -1,
                                   (self.col + num.col) if num.line == 0 else num.col,
                                   self.line + num.line)
         else:
@@ -41,7 +42,7 @@ class TextPos:
     def __sub__(self, other):
         assert self >= other
         return TextDeltaPos(
-            self.offset - other.offset,
+            self.offset - other.offset if self.offset >= 0 and other.offset >= 0 else -1,
             self.col - (other.col if self.line == other.line else 0),
             self.line - other.line
         )
@@ -50,34 +51,32 @@ class TextPos:
         return self - other
 
     def __gt__(self, other):
-        if other == 0:
-            return True
         assert isinstance(other, TextPos)
-        return self.offset > other.offset
+        if self.offset != -1 and other.offset != -1:
+            return self.offset > other.offset
+        else:
+            return self.line > other.line or (self.line == other.line and self.col > other.col)
 
     def __ge__(self, other):
-        if other == 0:
-            return True
         assert isinstance(other, TextPos)
-        return self.offset >= other.offset
+        if self.offset != -1 and other.offset != -1:
+            return self.offset >= other.offset
+        else:
+            return self.line > other.line or (self.line == other.line and self.col >= other.col)
 
     def __lt__(self, other):
-        if other == 0:
-            return False
         assert isinstance(other, TextPos)
         return not (self >= other)
 
     def __le__(self, other):
-        if other == 0:
-            return False
         assert isinstance(other, TextPos)
         return not (self > other)
 
     def __eq__(self, other):
-        if other == 0:
-            return False
         assert isinstance(other, TextPos)
-        return (self.offset == other.offset
+        return ((self.offset == other.offset
+                 or self.offset == -1
+                 or other.offset == -1)
                 and self.line == other.line
                 and self.col == other.col)
 

@@ -111,3 +111,26 @@ def test_convert_pos():
             pos = pos.new_line()
         else:
             pos += 1
+
+
+def test_order():
+    tp1 = TextPos(50, 30, 45)
+    tp2 = TextPos(90, 10, 48)
+    tp3 = TextPos(-1, 35, 45)
+    tp4 = TextPos(-1, 8, 48)
+
+    assert tp1 < tp2
+    assert tp1 <= tp2
+    assert tp2 > tp1
+    assert tp2 >= tp1
+
+    assert not tp1 > tp2
+    assert not tp1 >= tp2
+    assert not tp2 < tp1
+    assert not tp2 <= tp1
+
+    assert tp3 < tp4
+    assert tp3 < tp2
+    assert tp4 < tp2
+    assert tp3 > tp1
+    assert tp4 > tp1
