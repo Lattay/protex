@@ -71,6 +71,15 @@ class DiscardPrototype(CommandPrototype):
         yield from ()  # empty generator
 
 
+class DiscardOnePrototype(CommandPrototype):
+    def __init__(self, name):
+        self.name = name
+        self.expected_narg = 1
+
+    def tokens(self):
+        yield from ()  # empty generator
+
+
 class IllformedCommandJSON(ValueError):
     pass
 

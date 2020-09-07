@@ -53,10 +53,10 @@ class Parser:
             nodes.append(node)
             node = self._parse_node(deep, cmd_mode)
 
-        if deep == 0 and node is not None:
+        if deep == 0 and node is not None:  # unpaired closing bracket
             raise UnpairedBracketError(node.src_end, self.filename)
 
-        if deep > 0 and node is None:
+        if deep > 0 and node is None:  # unpaired opening bracket
             raise UnexpectedEndOfFile(self.filename)
         return nodes, node
 
@@ -86,10 +86,9 @@ class Parser:
                 # propably not
                 self.tok_push_back(next_arg)
 
-        elif isinstance(next_arg, WhiteSpace):
-            if isinstance(next_arg, NewParagraph):
-                # keep the NewParagraph
-                self.tok_push_back(next_arg)
+        elif isinstance(next_arg, (NewParagraph, CloseBra)):
+            # keep the NewParagraph and CloseBra
+            self.tok_push_back(next_arg)
 
         return args
 

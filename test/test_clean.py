@@ -1,7 +1,8 @@
+import pytest
 from protex.lexer import Lexer
-from protex.parser import Parser
+from protex.parser import Parser, UnexpectedEndOfFile, UnpairedBracketError
 
-from protex.commands import CommandDict, CommandPrototype, PrintOnePrototype
+from protex.commands import CommandDict, CommandPrototype, PrintOnePrototype, DiscardOnePrototype, DiscardPrototype
 
 from protex.text_pos import TextPos
 
@@ -16,14 +17,29 @@ Hop \\title{Un titre}
 Des histoires de \\phi.
 Pouet.'''
 
+t2 = '''\
+Hop \\title{Un titre\\label{title}}
+
+Des histoires de \\phi.
+Pouet.'''
+
 r1 = '''\
 Hop Un titre
 
 Des histoires de phi. Pouet.'''
 
+t3 = '\\title{Truc \\discard1000{say}{hello}}'
+r3 = 'Truc '
+
+e1 = '\\title{Truc'
+e2 = '\\title{Truc}}'
+e3 = '\\title{Truc \\discard1000{say}{hello}}}'
+
 commands = CommandDict({
     'title': PrintOnePrototype('title'),
     'phi': CommandPrototype('phi', 0, 'phi'),
+    'label': DiscardOnePrototype('label'),
+    'discard1000': DiscardPrototype('discard'),
 }, default_proto=lambda name: None)
 
 
@@ -32,6 +48,41 @@ def test_clean_1():
     psr = Parser(lx, commands)
     root = psr.parse()
     assert root.render() == r1
+
+
+def test_clean_2():
+    lx = Lexer.from_source(t2)
+    psr = Parser(lx, commands)
+    root = psr.parse()
+    assert root.render() == r1
+
+
+def test_clean_3():
+    lx = Lexer.from_source(t3)
+    psr = Parser(lx, commands)
+    root = psr.parse()
+    assert root.render() == r3
+
+
+def test_error_1():
+    lx = Lexer.from_source(e1)
+    psr = Parser(lx, commands)
+    with pytest.raises(UnexpectedEndOfFile):
+        psr.parse().render()
+
+
+def test_error_2():
+    lx = Lexer.from_source(e2)
+    psr = Parser(lx, commands)
+    with pytest.raises(UnpairedBracketError):
+        psr.parse().render()
+
+
+def test_error_3():
+    lx = Lexer.from_source(e3)
+    psr = Parser(lx, commands)
+    with pytest.raises(UnpairedBracketError):
+        psr.parse().render()
 
 
 def test_pos_map():
