@@ -1,4 +1,6 @@
-# Goal
+# Protex
+
+## Goal
 Protex aims at providing a flexible, extensible and interfaced way to remove
 TeX macros from a TeX/LaTeX document while keeping the mapping of position from
 cleaned text to source. This should make it easier to apply different language
@@ -7,12 +9,12 @@ positions.
 When possible the resulting file should also be a reasonably readable text file
 (no big blanks, no strange holes...).
 
-# Non-goal
+## Non-goal
 
 This project won't try to parse TeX in a complex way. The cleaning has to be
 extensible, but nor recursive, neither Turing complete as TeX is itself.
 
-# Principle
+## Principle
 
 A command prototype set is first built from the default *commands.json*,
 updated by the user *~/.commands.json* (if it exists) and then all the
@@ -49,16 +51,19 @@ those conditions is fulfilled:
 Those rules can seem a bit convoluted but if you have a valid TeX document and
 valid command prototypes, the result should be what you expect.
 
-# Installation
+## Installation
 
 From source: in the folder of this README run `pip install .` in a terminal.
 With pip directly: run `pip install -U protex`
 
-# Usage
+## Usage
 
 See the command line help by running `protex` or `python -m protex`.
 
-# Notes
+## Notes
 
 The requirements.txt is only for development and test, not for normal usage.
 There are no dependencies at all.
+
+The parser is very simple and some valid latex may break it.
+For example using `\big[` raise an error, while `\big{[}` is ok.
